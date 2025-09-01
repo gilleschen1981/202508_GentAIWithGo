@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+option go_package = "github.com/example/genai-foundation-demo;genaidemo";
+
+package genaidemo;
+
+service ChatService {
+  // Chat with LLM and get responses.
+  rpc Chat (ChatRequest) returns (ChatResponse) {}
+  // Chat with LLM using tools like DuckDuckGo search.
+  rpc ChatToUseTool (ChatToUseToolRequest) returns (ChatToUseToolResponse) {}
+}
+
+// The role of the message.
+enum Role {
+  ROLE_UNKNOWN = 0;
+  ROLE_USER = 1;
+  ROLE_ASSISTANT = 2;
+  ROLE_SYSTEM = 3;
+}
+
+// The request message structure
+message Message {
+  // The role of the message.
+  Role role = 1;
+  // The message content.
+  string content = 2;
+}
+
+// The request to chat with the LLM.
+message ChatRequest {
+  // List of messages in the conversation
+  repeated Message messages = 1;
+  // Optional temperature for response generation
+  optional float temperature = 2;
+  // Optional max tokens for response
+  optional int32 max_tokens = 3;
+}
+
+// The response from the chat.
+message ChatResponse {
+  // The assistant response message.
+  string content = 1;
+  // Token usage information about the chat message.
+  TokenUsage token_usage = 2;
+}
+
+// Contains token usage information about a round of dialogue.
+message TokenUsage {
+  // The input number of tokens in the prompt or input.
+  int32 input_token_num = 1;
+  // The output number of tokens in the completion or response.
+  int32 output_token_num = 2;
+  // The total number of tokens in the message.
+  int32 total_token_num = 3;
+}
+
+// The request to chat with the LLM using tools.
+message ChatToUseToolRequest {
+  // List of messages in the conversation
+  repeated Message messages = 1;
+  // Optional temperature for response generation
+  optional float temperature = 2;
+  // Optional max tokens for response
+  optional int32 max_tokens = 3;
+  // Tools to use during the conversation
+  repeated string tools = 4;
+}
+
+// The response from the chat with tool usage.
+message ChatToUseToolResponse {
+  // The assistant response message.
+  string content = 1;
+  // Token usage information about the chat message.
+  TokenUsage token_usage = 2;
+  // Information about tools used in the response
+  repeated ToolUsage tool_usage = 3;
+}
+
+// Information about tool usage
+message ToolUsage {
+  // Name of the tool used
+  string tool_name = 1;
+  // Input query to the tool
+  string query = 2;
+  // Results from the tool
+  string results = 3;
+}
