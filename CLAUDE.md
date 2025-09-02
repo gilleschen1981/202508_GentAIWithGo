@@ -88,3 +88,7 @@ Environment variables (optional):
 - Frontend is demo-only (simulates gRPC calls via mock responses)
 - Tool service (service_chat_tool.go) extends basic chat with external tools
 - Uses mirrors of langchain-go from Dentsply Sirona BitBucket
+
+## 测试配置
+请勿在每次代码修改后自动运行测试，请等待用户确认后再运行测试。
+测试相关的代码单独放到test目录，和业务代码隔离

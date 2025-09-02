@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	genaidemo "github.com/example/genai-foundation-demo"
 	"github.com/example/genai-foundation-demo/pkg/llm"
@@ -42,6 +44,8 @@ func newService(ctx context.Context, cfg *serviceConfig) (*chatService, error) {
 
 // Chat handles chat interactions with the LLM
 func (s *chatService) Chat(ctx context.Context, messages []*genaidemo.Message, temperature *float32, maxTokens *int32) (*ChatResult, error) {
+	startTime := time.Now()
+	log.Printf("🚀 [Chat] Starting tool-enabled chat session at %s", startTime.Format("15:04:05.000"))
 	if len(messages) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "messages cannot be empty")
 	}
@@ -65,35 +69,10 @@ func (s *chatService) Chat(ctx context.Context, messages []*genaidemo.Message, t
 	}, nil
 }
 
-// ChatWithTool handles chat interactions with tool capabilities
-func (s *chatService) ChatWithTool(ctx context.Context, messages []*genaidemo.Message, temperature *float32, maxTokens *int32) (*ChatResult, error) {
-	if len(messages) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "messages cannot be empty")
-	}
-
-	// Use LLM processor to generate response with tool context
-	result, err := s.llmProcessor.ProcessMessages(ctx, messages, temperature, maxTokens)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add tool context to response
-	enhancedContent := "[Tool Mode] " + result.Content
-
-	tokenUsage := &TokenUsageInfo{
-		InputTokens:  result.TokenUsage.InputTokens,
-		OutputTokens: result.TokenUsage.OutputTokens,
-		TotalTokens:  result.TokenUsage.TotalTokens,
-	}
-
-	return &ChatResult{
-		Content:    enhancedContent,
-		TokenUsage: tokenUsage,
-	}, nil
-}
-
 // ChatWithAgent handles chat interactions with agent capabilities
 func (s *chatService) ChatWithAgent(ctx context.Context, messages []*genaidemo.Message, temperature *float32, maxTokens *int32) (*ChatResult, error) {
+	startTime := time.Now()
+	log.Printf("🚀 [ChatWithAgent] Starting tool-enabled chat session at %s", startTime.Format("15:04:05.000"))
 	if len(messages) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "messages cannot be empty")
 	}
@@ -121,6 +100,8 @@ func (s *chatService) ChatWithAgent(ctx context.Context, messages []*genaidemo.M
 
 // ChatWithDoc handles chat interactions with document capabilities
 func (s *chatService) ChatWithDoc(ctx context.Context, messages []*genaidemo.Message, temperature *float32, maxTokens *int32) (*ChatResult, error) {
+	startTime := time.Now()
+	log.Printf("🚀 [ChatWithDoc] Starting tool-enabled chat session at %s", startTime.Format("15:04:05.000"))
 	if len(messages) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "messages cannot be empty")
 	}

@@ -82,10 +82,7 @@ class ChatApp {
             max_tokens: 500
         };
         
-        // Since this is a demo and we can't make direct gRPC calls from browser,
-        // we'll simulate the API call. In a real implementation, you would have
-        // a REST API gateway that translates HTTP to gRPC.
-        return this.simulateAPICall(requestData, 'chat');
+        return this.callHTTPAPI('/api/chat', requestData);
     }
     
     async callChatWithToolAPI(userMessage) {
@@ -100,7 +97,7 @@ class ChatApp {
             max_tokens: 500
         };
         
-        return this.simulateAPICall(requestData, 'tool');
+        return this.callHTTPAPI('/api/chat-with-tool', requestData);
     }
     
     async callChatWithAgentAPI(userMessage) {
@@ -115,7 +112,7 @@ class ChatApp {
             max_tokens: 500
         };
         
-        return this.simulateAPICall(requestData, 'agent');
+        return this.callHTTPAPI('/api/chat-with-agent', requestData);
     }
     
     async callChatWithDocAPI(userMessage) {
@@ -130,72 +127,43 @@ class ChatApp {
             max_tokens: 500
         };
         
-        return this.simulateAPICall(requestData, 'doc');
+        return this.callHTTPAPI('/api/chat-with-doc', requestData);
     }
     
-    async simulateAPICall(requestData, mode = 'chat') {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    async callHTTPAPI(endpoint, requestData) {
+        const baseURL = 'http://localhost:8080';
+        const url = baseURL + endpoint;
         
-        // Simulate different types of responses based on input and mode
-        const userMessage = requestData.messages[requestData.messages.length - 1].content.toLowerCase();
+        console.log(`🌐 Calling API: ${url}`);
+        console.log('📤 Request data:', requestData);
         
-        let responseContent;
-        const modePrefix = mode === 'chat' ? '' : `[${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode] `;
-        
-        if (userMessage.includes('hello') || userMessage.includes('hi')) {
-            responseContent = modePrefix + "Hello! I'm your AI assistant. How can I help you today?";
-        } else if (userMessage.includes('weather')) {
-            if (mode === 'tool') {
-                responseContent = modePrefix + "🔍 Using weather tools... The current weather is partly cloudy with a temperature of 22°C. Tool-enhanced response with real-time data access!";
-            } else if (mode === 'agent') {
-                responseContent = modePrefix + "🤖 As an intelligent agent, I can coordinate multiple services to get weather data, set reminders, and suggest activities based on conditions.";
-            } else if (mode === 'doc') {
-                responseContent = modePrefix + "📄 Based on weather documentation and patterns, here's comprehensive weather analysis with historical comparisons and forecasts.";
-            } else {
-                responseContent = "I don't have access to real-time weather data, but I'd be happy to help you with other questions!";
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
-        } else if (userMessage.includes('time') || userMessage.includes('date')) {
-            responseContent = modePrefix + `The current time is ${new Date().toLocaleString()}. Is there anything else I can help you with?`;
-        } else if (userMessage.includes('joke')) {
-            const jokes = [
-                "Why don't scientists trust atoms? Because they make up everything!",
-                "Why did the scarecrow win an award? He was outstanding in his field!",
-                "Why don't eggs tell jokes? They'd crack each other up!"
-            ];
-            responseContent = modePrefix + jokes[Math.floor(Math.random() * jokes.length)];
-        } else if (userMessage.includes('help')) {
-            let helpText = "I'm here to help! You can ask me questions about various topics, request jokes, ask about the time, or just have a conversation.";
-            if (mode === 'tool') {
-                helpText += " In Tool mode, I can search the web, use calculators, and access external APIs.";
-            } else if (mode === 'agent') {
-                helpText += " In Agent mode, I can coordinate multiple tasks, plan workflows, and act autonomously.";
-            } else if (mode === 'doc') {
-                helpText += " In Doc mode, I can analyze documents, extract information, and provide detailed research.";
+            
+            const responseData = await response.json();
+            console.log('📥 Response data:', responseData);
+            
+            if (responseData.error) {
+                throw new Error(responseData.error);
             }
-            responseContent = modePrefix + helpText;
-        } else {
-            let baseResponse = `You said: "${requestData.messages[requestData.messages.length - 1].content}". That's interesting!`;
-            if (mode === 'tool') {
-                baseResponse += " I can enhance this with web search, calculations, and external data.";
-            } else if (mode === 'agent') {
-                baseResponse += " As an agent, I can break this down into actionable steps and coordinate resources.";
-            } else if (mode === 'doc') {
-                baseResponse += " I can provide detailed analysis and cross-reference with relevant documentation.";
-            } else {
-                baseResponse += " I'm a demo AI assistant powered by a Go gRPC backend. Feel free to ask me anything!";
-            }
-            responseContent = modePrefix + baseResponse;
+            
+            return responseData;
+            
+        } catch (error) {
+            console.error('❌ API call failed:', error);
+            throw new Error(`Failed to connect to server: ${error.message}`);
         }
-        
-        return {
-            content: responseContent,
-            token_usage: {
-                input_token_num: Math.floor(Math.random() * 50) + 10,
-                output_token_num: Math.floor(Math.random() * 30) + 10,
-                total_token_num: Math.floor(Math.random() * 80) + 20
-            }
-        };
     }
     
     
