@@ -80,7 +80,16 @@
       "Bash(go run test/test_tool_logging.go)",
       "Bash(go run ../test/test_tool_logging.go)",
       "Bash(curl -X GET http://localhost:8080/api/health)",
-      "Bash(curl -X POST http://localhost:8080/api/chat-with-tool )"
+      "Bash(curl -X POST http://localhost:8080/api/chat-with-tool )",
+      "Bash(go doc bitbucket.dentsplysirona.com/mirrors/langchaingo/llms.WithTools)",
+      "Bash(go doc bitbucket.dentsplysirona.com/mirrors/langchaingo/llms.Tool)",
+      "Bash(go doc bitbucket.dentsplysirona.com/mirrors/langchaingo/llms.FunctionDefinition)",
+      "Bash(go doc bitbucket.dentsplysirona.com/mirrors/langchaingo/llms.CallOption)",
+      "Bash(lsof -i :8080)",
+      "Bash(lsof -i :50051)",
+      "Bash(go build -v -o ../genai-service .)",
+      "Bash(go build -v -o genai-service service/*.go)",
+      "Bash(go build -v -o genai-service .)"
     ],
     "deny": [],
     "ask": []

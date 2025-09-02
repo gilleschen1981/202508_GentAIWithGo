@@ -108,6 +108,33 @@ func (p *Processor) buildChatPrompt(messages []*genaidemo.Message) prompts.ChatP
 	return prompts.NewChatPromptTemplate(promptMessages)
 }
 
+// ConvertToLangchainMessages 将 genaidemo.Message 转换为 langchain MessageContent 格式
+// 这是直接转换方法，用于工具调用等需要直接与 LLM 交互的场景
+func ConvertToLangchainMessages(messages []*genaidemo.Message) []llms.MessageContent {
+	llmMessages := make([]llms.MessageContent, len(messages))
+	for i, msg := range messages {
+		var role llms.ChatMessageType
+		switch msg.Role {
+		case genaidemo.Role_ROLE_USER:
+			role = llms.ChatMessageTypeHuman
+		case genaidemo.Role_ROLE_ASSISTANT:
+			role = llms.ChatMessageTypeAI
+		case genaidemo.Role_ROLE_SYSTEM:
+			role = llms.ChatMessageTypeSystem
+		default:
+			role = llms.ChatMessageTypeHuman
+		}
+		
+		llmMessages[i] = llms.MessageContent{
+			Role: role,
+			Parts: []llms.ContentPart{
+				llms.TextPart(msg.Content),
+			},
+		}
+	}
+	return llmMessages
+}
+
 // TokenUsage token 使用情况统计
 type TokenUsage struct {
 	InputTokens  int32

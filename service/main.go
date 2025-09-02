@@ -2,17 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
-	"net"
+	"net/http"
 	"os"
 
 	"github.com/example/genai-foundation-demo"
-	"google.golang.org/grpc"
 )
 
 const (
 	serviceName = "genai-chat-service"
-	grpcPort    = "50051"
+	httpPort    = "8080"
 )
 
 type serviceConfig struct {
@@ -38,18 +38,24 @@ func main() {
 	}
 	defer func() { _ = handler.Close() }()
 
-	// Start gRPC server
-	lis, err := net.Listen("tcp", ":"+grpcPort)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	grpcServer := grpc.NewServer()
-	genaidemo.RegisterChatServiceServer(grpcServer, handler)
-
-	log.Printf("🚀 gRPC server listening at %v", lis.Addr())
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	// Start HTTP server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/chat", createHTTPHandler(handler, "Chat"))
+	mux.HandleFunc("/api/chat-with-tool", createHTTPHandler(handler, "ChatWithTool"))
+	mux.HandleFunc("/api/chat-with-agent", createHTTPHandler(handler, "ChatWithAgent"))
+	mux.HandleFunc("/api/chat-with-doc", createHTTPHandler(handler, "ChatWithDoc"))
+	mux.HandleFunc("/api/health", healthHandler)
+	
+	log.Printf("🌐 HTTP server starting on port %s", httpPort)
+	log.Printf("📍 API endpoints:")
+	log.Printf("   - POST /api/chat")
+	log.Printf("   - POST /api/chat-with-tool")
+	log.Printf("   - POST /api/chat-with-agent")
+	log.Printf("   - POST /api/chat-with-doc")
+	log.Printf("   - GET  /api/health")
+	
+	if err := http.ListenAndServe(":"+httpPort, mux); err != nil {
+		log.Fatalf("failed to serve HTTP: %v", err)
 	}
 
 	log.Printf("stopped %s service", serviceName)
@@ -100,4 +106,127 @@ func createHandler(ctx context.Context, cfg *serviceConfig) (*Handler, error) {
 	}
 
 	return handler, nil
+}
+
+// HTTP Handler types
+type HTTPMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type HTTPChatRequest struct {
+	Messages    []HTTPMessage `json:"messages"`
+	Temperature *float32      `json:"temperature,omitempty"`
+	MaxTokens   *int32        `json:"max_tokens,omitempty"`
+}
+
+type HTTPChatResponse struct {
+	Content string `json:"content"`
+	Error   string `json:"error,omitempty"`
+}
+
+// Create HTTP handler for gRPC service methods
+func createHTTPHandler(handler *Handler, method string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Enable CORS
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req HTTPChatRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
+			return
+		}
+
+		// Convert HTTP messages to gRPC messages
+		grpcMessages := make([]*genaidemo.Message, len(req.Messages))
+		for i, msg := range req.Messages {
+			grpcMessages[i] = &genaidemo.Message{
+				Role:    parseRole(msg.Role),
+				Content: msg.Content,
+			}
+		}
+
+		// Create gRPC request
+		grpcReq := &genaidemo.ChatRequest{
+			Messages:    grpcMessages,
+			Temperature: req.Temperature,
+			MaxTokens:   req.MaxTokens,
+		}
+
+		// Call appropriate gRPC method
+		var grpcResp *genaidemo.ChatResponse
+		var err error
+		
+		switch method {
+		case "Chat":
+			grpcResp, err = handler.Chat(r.Context(), grpcReq)
+		case "ChatWithTool":
+			grpcResp, err = handler.ChatWithTool(r.Context(), grpcReq)
+		case "ChatWithAgent":
+			grpcResp, err = handler.ChatWithAgent(r.Context(), grpcReq)
+		case "ChatWithDoc":
+			grpcResp, err = handler.ChatWithDoc(r.Context(), grpcReq)
+		default:
+			sendErrorResponse(w, "Unknown method", http.StatusBadRequest)
+			return
+		}
+
+		if err != nil {
+			log.Printf("❌ gRPC call failed: %v", err)
+			sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Send response
+		response := HTTPChatResponse{
+			Content: grpcResp.Content,
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+func parseRole(role string) genaidemo.Role {
+	switch role {
+	case "ROLE_USER":
+		return genaidemo.Role_ROLE_USER
+	case "ROLE_ASSISTANT":
+		return genaidemo.Role_ROLE_ASSISTANT
+	case "ROLE_SYSTEM":
+		return genaidemo.Role_ROLE_SYSTEM
+	default:
+		return genaidemo.Role_ROLE_USER
+	}
+}
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	response := HTTPChatResponse{
+		Error: message,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{
+		"status": "healthy",
+		"service": "genai-foundation-demo",
+	}
+	json.NewEncoder(w).Encode(response)
 }
