@@ -31,7 +31,6 @@ type TokenUsageInfo struct {
 	TotalTokens  int32
 }
 
-
 // Handler is handling incoming gRPC requests
 type Handler struct {
 	genaidemo.UnimplementedChatServiceServer

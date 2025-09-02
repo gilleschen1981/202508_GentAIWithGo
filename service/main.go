@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net"
-	"net/http"
 	"os"
 
 	"github.com/example/genai-foundation-demo"
@@ -14,7 +13,6 @@ import (
 const (
 	serviceName = "genai-chat-service"
 	grpcPort    = "50051"
-	httpPort    = "8080"
 )
 
 type serviceConfig struct {
@@ -39,29 +37,6 @@ func main() {
 		log.Fatalf("failed to create handler: %v", err)
 	}
 	defer func() { _ = handler.Close() }()
-
-	// Start HTTP server in goroutine
-	httpHandler := NewHTTPHandler(handler.service)
-	go func() {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/api/chat", httpHandler.Chat)
-		mux.HandleFunc("/api/chat-with-tool", httpHandler.ChatWithTool)
-		mux.HandleFunc("/api/chat-with-agent", httpHandler.ChatWithAgent)
-		mux.HandleFunc("/api/chat-with-doc", httpHandler.ChatWithDoc)
-		mux.HandleFunc("/api/health", httpHandler.Health)
-		
-		log.Printf("🌐 HTTP server starting on port %s", httpPort)
-		log.Printf("📍 API endpoints:")
-		log.Printf("   - POST /api/chat")
-		log.Printf("   - POST /api/chat-with-tool")
-		log.Printf("   - POST /api/chat-with-agent")
-		log.Printf("   - POST /api/chat-with-doc")
-		log.Printf("   - GET  /api/health")
-		
-		if err := http.ListenAndServe(":"+httpPort, mux); err != nil {
-			log.Fatalf("failed to serve HTTP: %v", err)
-		}
-	}()
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", ":"+grpcPort)
