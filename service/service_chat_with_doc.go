@@ -23,15 +23,15 @@ type ChromaDBQueryRequest struct {
 
 // ChromaDBQueryResponse represents the response structure from ChromaDB
 type ChromaDBQueryResponse struct {
-	Documents []string                   `json:"documents"`
-	Metadatas []map[string]interface{}   `json:"metadatas"`
-	Distances []float64                  `json:"distances"`
-	IDs       []string                   `json:"ids"`
+	Documents []string                 `json:"documents"`
+	Metadatas []map[string]interface{} `json:"metadatas"`
+	Distances []float64                `json:"distances"`
+	IDs       []string                 `json:"ids"`
 }
 
 // queryChromaDB searches ChromaDB for relevant documents
 func (s *chatService) queryChromaDB(ctx context.Context, query string, nResults int) (*ChromaDBQueryResponse, error) {
-	chromaDBURL := "http://localhost:8002/query"
+	chromaDBURL := "http://localhost:8000/query"
 
 	reqBody := ChromaDBQueryRequest{
 		Query:    query,
@@ -130,7 +130,7 @@ func (s *chatService) ChatWithDoc(ctx context.Context, messages []*genaidemo.Mes
 
 	// Add system message with document context
 	systemMessage := &genaidemo.Message{
-		Role: genaidemo.Role_ROLE_SYSTEM,
+		Role:    genaidemo.Role_ROLE_SYSTEM,
 		Content: fmt.Sprintf("You are a helpful AI assistant with access to relevant documents. Use the following document excerpts to help answer the user's question:\n\n=== RELEVANT DOCUMENTS ===%s\n\n=== END DOCUMENTS ===\n\nWhen answering, reference specific information from the documents when relevant. If the documents don't contain information to answer the question, say so clearly.", contextDocs),
 	}
 	enhancedMessages = append(enhancedMessages, systemMessage)
