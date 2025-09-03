@@ -98,34 +98,6 @@ func (s *chatService) ChatWithAgent(ctx context.Context, messages []*genaidemo.M
 	}, nil
 }
 
-// ChatWithDoc handles chat interactions with document capabilities
-func (s *chatService) ChatWithDoc(ctx context.Context, messages []*genaidemo.Message, temperature *float32, maxTokens *int32) (*ChatResult, error) {
-	startTime := time.Now()
-	log.Printf("🚀 [ChatWithDoc] Starting tool-enabled chat session at %s", startTime.Format("15:04:05.000"))
-	if len(messages) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "messages cannot be empty")
-	}
-
-	// Use LLM processor to generate response with document context
-	result, err := s.llmProcessor.ProcessMessages(ctx, messages, temperature, maxTokens)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add document context to response
-	enhancedContent := "[Doc Mode] " + result.Content
-
-	tokenUsage := &TokenUsageInfo{
-		InputTokens:  result.TokenUsage.InputTokens,
-		OutputTokens: result.TokenUsage.OutputTokens,
-		TotalTokens:  result.TokenUsage.TotalTokens,
-	}
-
-	return &ChatResult{
-		Content:    enhancedContent,
-		TokenUsage: tokenUsage,
-	}, nil
-}
 
 // Close closes the service and cleans up resources
 func (s *chatService) Close() error {
